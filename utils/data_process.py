@@ -8,8 +8,11 @@ import numpy as np
 import random
 import os
 
+from keras.utils import to_categorical
+from keras_bert import Tokenizer
 from utils.common_tools import save_json, load_json
 from tqdm import tqdm
+
 
 def fit_process(self, embedding_type, path, embed, rate=1, shuffle=True):
     data = pd.read_csv(path)
@@ -90,3 +93,67 @@ def fit_process(self, embedding_type, path, embed, rate=1, shuffle=True):
 
 def fig_generator_process():
     pass
+
+
+# 重写tokenizer
+class OurTokenizer(Tokenizer):
+    def _tokenize(self, text):
+        R = []
+        for c in text:
+            if c in self._token_dict:
+                R.append(c)
+            elif self._is_space(c):
+                R.append('[unused1]')  # 用[unused1]来表示空格类字符
+            else:
+                R.append('[UNK]')  # 不在列表的字符用[UNK]表示
+        return R
+
+
+# 让每条文本的长度相同，用0填充
+def seq_padding(X, padding=0):
+    L = [len(x) for x in X]
+    ML = max(L)
+    return np.array([
+        np.concatenate([x, [padding] * (ML - len(x))]) if len(x) < ML else x for x in X
+    ])
+
+
+# DataGenerator只是一种为了节约内存的数据方式
+class DataGenerator:
+    def __init__(self, data, tokenizer,categories, maxlen=128, batch_size=32, shuffle=True):
+        self.data = data
+        self.batch_size = batch_size
+        self.categories = categories
+        self.maxlen = maxlen
+        self.tokenizer = tokenizer
+        self.shuffle = shuffle
+        self.steps = len(self.data) // self.batch_size
+        if len(self.data) % self.batch_size != 0:
+            self.steps += 1
+
+    def __len__(self):
+        return self.steps
+
+    def __iter__(self):
+        while True:
+            idxs = list(range(len(self.data)))
+
+            if self.shuffle:
+                np.random.shuffle(idxs)
+
+            X1, X2, Y = [], [], []
+            for i in idxs:
+                d = self.data[i]
+                text = d[1][:self.maxlen]
+                x1, x2 = self.tokenizer.encode(first=text)  # token_ids, segment_ids
+                y = d[0]
+                X1.append(x1)
+                X2.append(x2)
+                Y.append([y])
+                if len(X1) == self.batch_size or i == idxs[-1]:
+                    X1 = seq_padding(X1)
+                    X2 = seq_padding(X2)
+                    # Y = seq_padding(Y)
+                    Y = np.array(to_categorical(Y, self.categories))
+                    yield [X1, X2], Y
+                    [X1, X2, Y] = [], [], []

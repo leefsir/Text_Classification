@@ -9,6 +9,8 @@ import os
 import re
 import jieba
 import pandas as pd
+import numpy as np
+
 
 
 def txt_read(file_path, encode_type='utf-8'):
@@ -94,9 +96,11 @@ def preprocess_label_ques(path):
                 break
             ques = line_json['title']
             label = line_json['category'][0:2]
-            line_x = " ".join([extract_chinese(word) for word in list(jieba.cut(ques, cut_all=False, HMM=True))]).strip().replace('  ',' ')
+            line_x = " ".join(
+                [extract_chinese(word) for word in list(jieba.cut(ques, cut_all=False, HMM=True))]).strip().replace(
+                '  ', ' ')
             line_y = extract_chinese(label)
-            x_y.append(line_y+','+line_x+'\n')
+            x_y.append(line_y + ',' + line_x + '\n')
     return x_y
 
 
@@ -135,8 +139,9 @@ def delete_file(path):
         if os.path.isfile(path_children):
             if path_children.endswith(".h5") or path_children.endswith(".json"):
                 os.remove(path_children)
-        else:# 递归, 删除目录下的所有文件
+        else:  # 递归, 删除目录下的所有文件
             delete_file(path_children)
+
 
 def token_process(vocab_path):
     """
@@ -145,8 +150,11 @@ def token_process(vocab_path):
     """
     # 将词表中的词转换为字典
     token_dict = {}
-    with codecs.open(vocab_path,'r','utf8') as reader:
+    with codecs.open(vocab_path, 'r', 'utf8') as reader:
         for line in reader:
             token = line.strip()
             token_dict[token] = len(token_dict)
     return token_dict
+
+
+
