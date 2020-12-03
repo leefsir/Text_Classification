@@ -7,20 +7,20 @@ import os
 
 from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
 
-from utils.common_tools import save_json
+from utils.common_tools import save_json, data_preprocess
 
 
 class BasisGraph():
-    def __init__(self, parameters: {{}, {}}):
+    def __init__(self, parameters: {}):
         """
         基础模型框架构建
         :param self.hyper_parameters: 模型超参数
         """
         self.hyper_parameters = parameters.get('hyper_parameters')
         self.model_env_parameters = parameters.get('model_env_parameters')
-        if not self.hyper_parameters or not self.model_env_parameters:
+        if not self.hyper_parameters:
             raise Exception(
-                "Model self.hyper_parameters or model_env_parameters are null! parameters:{}".format(parameters))
+                "Model hyper_parameters are null! parameters:{}".format(parameters))
 
         # 初始化模型超参数
         self.epoch = self.hyper_parameters.get('epoch', 10)  # 训练伦次
@@ -30,35 +30,51 @@ class BasisGraph():
         self.embed_size = self.hyper_parameters.get('embed_size', 300)  # 词向量编码维度
         self.dropout = self.hyper_parameters.get('dropout', 0.5)  # dropout层系数，丢失率控制
         self.decay_step = self.hyper_parameters.get('decay_step', 100)  # 衰减步数
-        self.decay_rate = self.hyper_parameters.get('decay_rate', 0.9)  # 衰减系数
-        self.lr = self.hyper_parameters.get('lr', 1e-5)  # 学习率
+        self.decay_rate = self.hyper_parameters.get('decay_rate', 0.99)  # 衰减系数
+        self.lr = self.hyper_parameters.get('lr', 1e-3)  # 学习率
         self.patience = self.hyper_parameters.get('patience', 2)  # 早停计数
         self.activation = self.hyper_parameters.get('activation', 'softmax')  # 分类激活函数,softmax或者signod
         self.loss = self.hyper_parameters.get('loss',
                                               'categorical_crossentropy')  # 损失函数, mse, categorical_crossentropy, sparse_categorical_crossentropy, binary_crossentropy等
         self.metrics = self.hyper_parameters.get('metrics',
-                                                 ['accuracy'])  # acc, binary_accuracy, categorical_accuracy, sparse_categorical_accuracy, sparse_top_k_categorical_accuracy
+                                                 [
+                                                     'accuracy'])  # acc, binary_accuracy, categorical_accuracy, sparse_categorical_accuracy, sparse_top_k_categorical_accuracy
+        self.train_data_path = self.hyper_parameters.get('train_data_path')
+        if not self.train_data_path: raise Exception("No training data!")
+        self.valid_data_path = self.hyper_parameters.get('valid_data_path')
+
         # 初始化环境参数
         self.gpu_memory_fraction = self.model_env_parameters.get('gpu_memory_fraction', None)  # gpu使用占比
-        self.trainable = self.model_env_parameters.get('trainable', False)  # 预训练语言模型是否参与训练微调
+        self.trainable = self.model_env_parameters.get('trainable', None)  # 预训练语言模型是否参与训练微调
         self.is_training = self.model_env_parameters.get('is_training', False)  # 是否训练, 保存时候为Flase,方便预测
         self.gpu_id = self.model_env_parameters.get('gpu_id', None)  # 使用的gpu_id
         self.parameters = parameters
         self._set_gpu_id(self.gpu_id)  # 设置训练的GPU_ID
-
-        if self.is_training:
-            self.model_compile()
+        self.data_process()
+        self.model_create()
+        # if self.is_training:
+        #     self.model_compile()
 
     def _set_gpu_id(self, gpu_id):
         """指定使用的GPU显卡id"""
         if gpu_id:
             os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+
     def data_process(self):
         """
         数据处理
         :return:
         """
-        raise NotImplementedError
+        if self.is_training:
+            self.i2l, self.l2i, self.train_data = data_preprocess(self.train_data_path)
+            self.categories = len(self.i2l)
+            if self.valid_data_path:
+                _, _, self.valid_data = data_preprocess(self.valid_data_path)
+            else:
+                sep = int(len(self.train_data) * 0.8)
+                self.train_data = self.train_data[:sep]
+                self.valid_data = self.train_data[sep:]
+
     def model_create(self):
         """
         模型框架搭建
@@ -74,7 +90,7 @@ class BasisGraph():
         """
         raise NotImplementedError
 
-    def fit(self,x_train, y_train, x_dev, y_dev):
+    def fit(self, x_train, y_train, x_dev, y_dev):
         """
         模型编译，添加loss，优化器，评价函数
         :return:

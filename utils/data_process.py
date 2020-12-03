@@ -118,10 +118,12 @@ def seq_padding(X, padding=0):
     ])
 
 
+
 # DataGenerator只是一种为了节约内存的数据方式
 class DataGenerator:
-    def __init__(self, data, tokenizer,categories, maxlen=128, batch_size=32, shuffle=True):
+    def __init__(self, data, l2i,tokenizer,categories, maxlen=128, batch_size=32, shuffle=True):
         self.data = data
+        self.l2i = l2i
         self.batch_size = batch_size
         self.categories = categories
         self.maxlen = maxlen
@@ -144,16 +146,21 @@ class DataGenerator:
             X1, X2, Y = [], [], []
             for i in idxs:
                 d = self.data[i]
-                text = d[1][:self.maxlen]
+                text = d[1][:self.maxlen].replace(' ','')
                 x1, x2 = self.tokenizer.encode(first=text)  # token_ids, segment_ids
-                y = d[0]
+                y = self.l2i.get(d[0])
                 X1.append(x1)
                 X2.append(x2)
                 Y.append([y])
                 if len(X1) == self.batch_size or i == idxs[-1]:
                     X1 = seq_padding(X1)
                     X2 = seq_padding(X2)
-                    # Y = seq_padding(Y)
                     Y = np.array(to_categorical(Y, self.categories))
                     yield [X1, X2], Y
                     [X1, X2, Y] = [], [], []
+
+if __name__ == '__main__':
+    Y = [[1],[2],[3],[0]]
+    Y = [1,2,3,0]
+    Y = np.array(to_categorical(Y, 4))
+    print(Y)

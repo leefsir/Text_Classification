@@ -39,7 +39,7 @@ def txt_read(file_path, encode_type='utf-8'):
 def txt_write(list_line, file_path, type='w', encode_type='utf-8'):
     """
       txt写入list文件
-    :param listLine:list, list文件，写入要带"\n"
+    :param listLine:list, list文件，写入要带"/n"
     :param filePath:str, 写入文件的路径
     :param type: str, 写入类型, w, a等
     :param encode_type:
@@ -60,7 +60,7 @@ def extract_chinese(text):
     :param text: str, input of sentence
     :return:
     """
-    chinese_exttract = ''.join(re.findall(u"([\u4e00-\u9fa5A-Za-z0-9@._])", text))
+    chinese_exttract = ''.join(re.findall(u"([/u4e00-/u9fa5A-Za-z0-9@._])", text))
     return chinese_exttract
 
 
@@ -86,7 +86,7 @@ def read_and_process(path):
 
 def preprocess_label_ques(path):
     x, y, x_y = [], [], []
-    x_y.append('label,ques\n')
+    x_y.append('label,ques/n')
     with open(path, 'r', encoding='utf-8') as f:
         while True:
             line = f.readline()
@@ -100,7 +100,7 @@ def preprocess_label_ques(path):
                 [extract_chinese(word) for word in list(jieba.cut(ques, cut_all=False, HMM=True))]).strip().replace(
                 '  ', ' ')
             line_y = extract_chinese(label)
-            x_y.append(line_y + ',' + line_x + '\n')
+            x_y.append(line_y + ',' + line_x + '/n')
     return x_y
 
 
@@ -157,4 +157,33 @@ def token_process(vocab_path):
     return token_dict
 
 
+def data_preprocess(data_path,label='label'):
+    """
+    处理数据返回类别标签转换字典
+    :param data_path:
+    :return:
+    """
+    df = pd.read_csv(data_path).dropna()
+    label_unique = df[label].unique()
+    data = df.values.tolist()
+    # print(list(label_unique))
+    i2l = {i:v for i,v in enumerate(label_unique)}
+    l2i = {v:i for i,v in enumerate(label_unique)}
+    print(l2i)
+    return i2l,l2i,data
 
+
+def _data_preprocess(data_path):
+    df = pd.read_csv(data_path).dropna().values.tolist()
+    # for data in df:
+    #     print(type(data))
+    #     print(data)
+    return df
+
+
+
+
+
+
+if __name__ == '__main__':
+    data_preprocess('E:/lwf_practice/Text_Classification/corpus/baidu_qa_2019/baike_qa_train.csv')
