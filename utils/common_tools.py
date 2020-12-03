@@ -12,6 +12,23 @@ import pandas as pd
 import numpy as np
 
 
+def data2csv(data_path, sep):
+    # 训练数据、测试数据和标签转化为模型输入格式
+    label = []
+    content = []
+    with open(data_path, 'r', encoding='utf8') as f:
+        contents = f.readlines()
+        for line in contents:
+            line = line.split(sep)
+            label.append(line[1])
+            content.append(line[0])
+    data = {}
+    data['label'] = label
+    data['content'] = content
+    data_path = ''.join(data_path.split('.')[:-1]) + '.csv'
+    pd.DataFrame(data).to_csv(data_path, index=False)
+    return data_path
+
 
 def txt_read(file_path, encode_type='utf-8'):
     """
@@ -157,7 +174,7 @@ def token_process(vocab_path):
     return token_dict
 
 
-def data_preprocess(data_path,label='label'):
+def data_preprocess(data_path, label='label'):
     """
     处理数据返回类别标签转换字典
     :param data_path:
@@ -166,22 +183,9 @@ def data_preprocess(data_path,label='label'):
     df = pd.read_csv(data_path).dropna()
     label_unique = df[label].unique()
     data = df.values.tolist()
-    # print(list(label_unique))
-    i2l = {i:v for i,v in enumerate(label_unique)}
-    l2i = {v:i for i,v in enumerate(label_unique)}
-    print(l2i)
-    return i2l,l2i,data
-
-
-def _data_preprocess(data_path):
-    df = pd.read_csv(data_path).dropna().values.tolist()
-    # for data in df:
-    #     print(type(data))
-    #     print(data)
-    return df
-
-
-
+    i2l = {i: str(v) for i, v in enumerate(label_unique)}
+    l2i = {str(v): i for i, v in enumerate(label_unique)}
+    return i2l, l2i, data
 
 
 
