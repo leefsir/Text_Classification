@@ -41,6 +41,9 @@ class BasisGraph():
                                               'categorical_crossentropy')  # 损失函数, mse, categorical_crossentropy, sparse_categorical_crossentropy, binary_crossentropy等
         self.metrics = self.hyper_parameters.get('metrics',
                                                  ['accuracy'])  # acc, binary_accuracy, categorical_accuracy, sparse_categorical_accuracy, sparse_top_k_categorical_accuracy
+
+        self.path_fineture = self.hyper_parameters.get('path_fineture',
+                                                        "path_fineture")  # embedding层保存地址, 例如静态词向量、动态词向量、微调bert层等
         self.train_data_path = self.hyper_parameters.get('train_data_path')
         if self.is_training and not self.train_data_path: raise Exception("No training data!")
         self.valid_data_path = self.hyper_parameters.get('valid_data_path')
