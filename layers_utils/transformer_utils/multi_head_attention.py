@@ -3,7 +3,7 @@
 
 
 
-from keras_textclassification.keras_layers.transformer_utils.scale_dot_product_attention import ScaledDotProductAttention
+from layers_utils.transformer_utils.scale_dot_product_attention import ScaledDotProductAttention
 from keras.layers import Layer
 import keras.backend as K
 import keras

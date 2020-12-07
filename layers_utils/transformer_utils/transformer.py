@@ -4,11 +4,11 @@
 # @author   :Mo
 # @function :
 
-from keras_textclassification.keras_layers.transformer_utils.triangle_position_embedding import TriglePositiomEmbedding
-from keras_textclassification.keras_layers.transformer_utils.multi_head_attention import MultiHeadAttention
-from keras_textclassification.keras_layers.transformer_utils.layer_normalization import LayerNormalization
-from keras_textclassification.keras_layers.transformer_utils.embedding import EmbeddingRet, EmbeddingSim
-from keras_textclassification.keras_layers.transformer_utils.feedforward import FeedForward
+from layers_utils.transformer_utils.triangle_position_embedding import TriglePositiomEmbedding
+from layers_utils.transformer_utils.multi_head_attention import MultiHeadAttention
+from layers_utils.transformer_utils.layer_normalization import LayerNormalization
+from layers_utils.transformer_utils.embedding import EmbeddingRet, EmbeddingSim
+from layers_utils.transformer_utils.feedforward import FeedForward
 import numpy as np
 import keras
 

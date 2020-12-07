@@ -4,10 +4,12 @@
 # datetime： 2020/12/1 11:06 
 # ide： PyCharm
 import os
+
 import numpy as np
 from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
 
-from utils.common_tools import save_json, data_preprocess, data2csv, load_json
+from utils.common_tools import data_preprocess, data2csv, load_json, token_process
+from utils.data_process import OurTokenizer
 
 
 class BasisGraph():
@@ -16,8 +18,8 @@ class BasisGraph():
         基础模型框架构建
         :param self.hyper_parameters: 模型超参数
         """
-        self.hyper_parameters = parameters.get('hyper_parameters',{})
-        self.model_env_parameters = parameters.get('model_env_parameters',{})
+        self.hyper_parameters = parameters.get('hyper_parameters', {})
+        self.model_env_parameters = parameters.get('model_env_parameters', {})
 
         # 初始化环境参数
         self.gpu_memory_fraction = self.model_env_parameters.get('gpu_memory_fraction', None)  # gpu使用占比
@@ -34,23 +36,26 @@ class BasisGraph():
         self.dropout = self.hyper_parameters.get('dropout', 0.5)  # dropout层系数，丢失率控制
         self.decay_step = self.hyper_parameters.get('decay_step', 100)  # 衰减步数
         self.decay_rate = self.hyper_parameters.get('decay_rate', 0.99)  # 衰减系数
-        self.lr = self.hyper_parameters.get('lr', 1e-5)  # 学习率
+        self.lr = self.hyper_parameters.get('lr', 1e-4)  # 学习率
         self.patience = self.hyper_parameters.get('patience', 2)  # 早停计数
         self.activation = self.hyper_parameters.get('activation', 'softmax')  # 分类激活函数,softmax或者signod
         self.loss = self.hyper_parameters.get('loss',
                                               'categorical_crossentropy')  # 损失函数, mse, categorical_crossentropy, sparse_categorical_crossentropy, binary_crossentropy等
         self.metrics = self.hyper_parameters.get('metrics',
-                                                 ['accuracy'])  # acc, binary_accuracy, categorical_accuracy, sparse_categorical_accuracy, sparse_top_k_categorical_accuracy
+                                                 [
+                                                     'accuracy'])  # acc, binary_accuracy, categorical_accuracy, sparse_categorical_accuracy, sparse_top_k_categorical_accuracy
 
         self.path_fineture = self.hyper_parameters.get('path_fineture',
-                                                        "path_fineture")  # embedding层保存地址, 例如静态词向量、动态词向量、微调bert层等
+                                                       "path_fineture")  # embedding层保存地址, 例如静态词向量、动态词向量、微调bert层等
         self.train_data_path = self.hyper_parameters.get('train_data_path')
         if self.is_training and not self.train_data_path: raise Exception("No training data!")
         self.valid_data_path = self.hyper_parameters.get('valid_data_path')
-
+        self.token_dict = token_process(self.vocab_path)
+        if not self.token_dict : raise Exception("No token_dict!")
+        self.tokenizer = OurTokenizer(self.token_dict)
         self.parameters = parameters
         self._set_gpu_id(self.gpu_id)  # 设置训练的GPU_ID
-        if self.is_training:self.data_process()
+        if self.is_training: self.data_process()
         self.model_create()
         if not self.is_training:
             self.load_model()
@@ -60,14 +65,15 @@ class BasisGraph():
         if gpu_id:
             os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
 
-    def data_process(self,sep='\t'):
+    def data_process(self, sep='\t'):
         """
         数据处理
         :return:
         """
         if '.csv' not in self.train_data_path:
-            self.train_data_path = data2csv(self.train_data_path,sep)
+            self.train_data_path = data2csv(self.train_data_path, sep)
         self.i2l, self.l2i, self.train_data = data_preprocess(self.train_data_path)
+        print(self.l2i)
         self.categories = len(self.i2l)
         if self.valid_data_path:
             if '.csv' not in self.valid_data_path:
@@ -77,7 +83,8 @@ class BasisGraph():
             split = int(len(self.train_data) * 0.8)
             self.train_data = self.train_data[:split]
             self.valid_data = self.train_data[split:]
-    def predict_process(self,sep='\t'):
+
+    def predict_process(self, sep='\t'):
         """
         预测模型参数处理
         :return:
@@ -131,10 +138,10 @@ class BasisGraph():
         """
         raise NotImplementedError
 
-    def predict(self,text):
-        token_ids,segment_ids=self.tokenizer.encode(text)
+    def predict(self, text):
+        token_ids, segment_ids = self.tokenizer.encode(text)
         # print(token_ids)
-        pre = self.model.predict([[token_ids],[segment_ids]])
+        pre = self.model.predict([[token_ids], [segment_ids]])
         # print(pre)
         print(self.i2l.get(str(np.argmax(pre[0]))))
 

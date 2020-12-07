@@ -97,6 +97,9 @@ def fig_generator_process():
 
 # 重写tokenizer
 class OurTokenizer(Tokenizer):
+    def __init__(self,token_dict):
+        self.vocab_size = len(token_dict)
+        super().__init__(token_dict)
     def _tokenize(self, text):
         R = []
         for c in text:
@@ -108,11 +111,23 @@ class OurTokenizer(Tokenizer):
                 R.append('[UNK]')  # 不在列表的字符用[UNK]表示
         return R
 
+    def encode(self, first, second=None, max_len=None,algo_code=None):
+        if not algo_code:
+            super().encode(first, second=None, max_len=None)
+        else:
+            first_tokens = self._tokenize(first)
+            second_tokens = self._tokenize(second) if second is not None else None
+            self._truncate(first_tokens, second_tokens, max_len)
+            token_ids = self._convert_tokens_to_ids(first_tokens)
+            return token_ids
+
 
 # 让每条文本的长度相同，用0填充
-def seq_padding(X, padding=0):
-    L = [len(x) for x in X]
-    ML = max(L)
+def seq_padding(X, padding=0,max_len:int=0):
+    if max_len:ML = max_len
+    else:
+        L = [len(x) for x in X]
+        ML = max(L)
     return np.array([
         np.concatenate([x, [padding] * (ML - len(x))]) if len(x) < ML else x for x in X
     ])
