@@ -10,6 +10,7 @@ path_root = path_root.replace('\\', '/')
 # print(path_root)
 # 日志路径配置
 LOG_PATH = os.path.join(path_root,"logs")
+LOG_NAME = "classification.log"
 
 # 模型文件路径
 MODEL_ROOT_PATH = os.path.join(path_root,'models')

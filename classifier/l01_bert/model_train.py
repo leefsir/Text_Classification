@@ -19,7 +19,9 @@ parameters = {
 'hyper_parameters':{
     'train_data_path':train_data_path,
     'valid_data_path':valid_data_path,
-    'batch_size':256,
+    'batch_size':128,
+    'max_len':50,
+    'epoch':30,
 },
 'model_env_parameters':{'is_training':True,},
 }

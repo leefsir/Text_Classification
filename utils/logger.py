@@ -4,12 +4,12 @@
 # datetime： 2020/12/1 14:09 
 # ide： PyCharm
 
-import os
 import logging
+import os
 import re
 from logging.handlers import TimedRotatingFileHandler
 
-from configs.path_config import LOG_PATH
+from configs.path_config import LOG_PATH, LOG_NAME
 
 LOGGER_LEVEL = logging.INFO
 # 日志保存个数
@@ -17,6 +17,8 @@ BACKUP_COUNT = 30
 
 if not os.path.exists(LOG_PATH):
     os.makedirs(LOG_PATH, exist_ok=True)
+
+
 def setup_log(log_path, log_name):
     logging.basicConfig(level=logging.ERROR)
     # 创建logger对象。传入logger名字
@@ -44,5 +46,4 @@ def setup_log(log_path, log_name):
     return logger
 
 
-# train_logger = setup_log(LOG_PATH, TRAIN_LOG_NAME)
-# predict_logger = setup_log(LOG_PATH, PREDICT_LOG_NAME)
+logger = setup_log(LOG_PATH, LOG_NAME)

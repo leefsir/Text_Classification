@@ -34,7 +34,7 @@ class BasisGraph():
         self.dropout = self.hyper_parameters.get('dropout', 0.5)  # dropout层系数，丢失率控制
         self.decay_step = self.hyper_parameters.get('decay_step', 100)  # 衰减步数
         self.decay_rate = self.hyper_parameters.get('decay_rate', 0.99)  # 衰减系数
-        self.lr = self.hyper_parameters.get('lr', 1e-3)  # 学习率
+        self.lr = self.hyper_parameters.get('lr', 1e-5)  # 学习率
         self.patience = self.hyper_parameters.get('patience', 2)  # 早停计数
         self.activation = self.hyper_parameters.get('activation', 'softmax')  # 分类激活函数,softmax或者signod
         self.loss = self.hyper_parameters.get('loss',
@@ -133,9 +133,9 @@ class BasisGraph():
 
     def predict(self,text):
         token_ids,segment_ids=self.tokenizer.encode(text)
-        print(token_ids)
+        # print(token_ids)
         pre = self.model.predict([[token_ids],[segment_ids]])
-        print(pre)
+        # print(pre)
         print(self.i2l.get(str(np.argmax(pre[0]))))
 
     def callback(self):
