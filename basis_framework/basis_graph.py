@@ -91,6 +91,7 @@ class BasisGraph():
             _, _, self.test_data = data_preprocess(self.valid_data_path)
         # self.train_data = self.train_data[:100]
         # self.valid_data = self.valid_data[:100]
+        # self.test_data = self.test_data[:100]
 
     def predict_process(self, sep='\t'):
         """

@@ -16,7 +16,7 @@ from keras_bert import load_trained_model_from_checkpoint
 from basis_framework.basis_graph import BasisGraph
 from configs.path_config import BERT_MODEL_PATH, MODEL_ROOT_PATH
 from utils.common_tools import token_process, save_json
-from utils.data_process import OurTokenizer, DataGenerator
+from utils.data_process import OurTokenizer, MyDataGenerator
 from utils.logger import logger
 
 
@@ -64,12 +64,12 @@ class AlbertGraph(BasisGraph):
         self.parameters['model_env_parameters']['trainable'] = False
         save_json(jsons=self.i2l, json_path=self.index2label_path)
         save_json(jsons=self.parameters, json_path=self.path_parameters)
-        train_D = DataGenerator(self.train_data, self.l2i, self.tokenizer, self.categories, self.max_len,
-                                self.batch_size,
-                                shuffle=True)
-        valid_D = DataGenerator(self.valid_data, self.l2i, self.tokenizer, self.categories, self.max_len,
-                                self.batch_size,
-                                shuffle=True)
+        train_D = MyDataGenerator(self.train_data, self.l2i, self.tokenizer, self.categories, self.max_len,
+                                  self.batch_size,
+                                  shuffle=True)
+        valid_D = MyDataGenerator(self.valid_data, self.l2i, self.tokenizer, self.categories, self.max_len,
+                                  self.batch_size,
+                                  shuffle=True)
 
         # 模型训练
         history = self.model.fit_generator(

@@ -9,6 +9,7 @@ import numpy as np
 import random
 import os
 
+from bert4keras.snippets import DataGenerator, sequence_padding
 from keras.utils import to_categorical
 from keras_bert import Tokenizer
 from utils.common_tools import save_json, load_json
@@ -98,9 +99,10 @@ def fig_generator_process():
 
 # 重写tokenizer
 class OurTokenizer(Tokenizer):
-    def __init__(self,token_dict):
+    def __init__(self, token_dict):
         self.vocab_size = len(token_dict)
         super().__init__(token_dict)
+
     def _tokenize(self, text):
         R = []
         for c in text:
@@ -112,20 +114,21 @@ class OurTokenizer(Tokenizer):
                 R.append('[UNK]')  # 不在列表的字符用[UNK]表示
         return R
 
-    def encode(self, first, second=None, max_len=None,algo_code=None):
+    def encode(self, first, second=None, max_length=None, algo_code=None):
         if not algo_code:
             return super().encode(first, second=None, max_len=None)
         else:
             first_tokens = self._tokenize(first)
             second_tokens = self._tokenize(second) if second is not None else None
-            self._truncate(first_tokens, second_tokens, max_len)
+            self._truncate(first_tokens, second_tokens, max_length)
             token_ids = self._convert_tokens_to_ids(first_tokens)
             return token_ids
 
 
 # 让每条文本的长度相同，用0填充
-def seq_padding(X, padding=0,max_len:int=0):
-    if max_len:ML = max_len
+def seq_padding(X, padding=0, max_len: int = 0):
+    if max_len:
+        ML = max_len
     else:
         L = [len(x) for x in X]
         ML = max(L)
@@ -135,7 +138,30 @@ def seq_padding(X, padding=0,max_len:int=0):
 
 
 # DataGenerator只是一种为了节约内存的数据方式
-class DataGenerator:
+class datagenerator(DataGenerator):
+    def __init__(self, data, l2i, tokenizer, batch_size, maxlen=128):
+        super().__init__(data, batch_size=batch_size)
+        self.l2i = l2i
+        self.maxlen = maxlen
+        self.tokenizer = tokenizer
+
+    def __iter__(self,random=False):
+        batch_token_ids, batch_segment_ids, batch_labels = [], [], []
+        for is_end, (label, text) in self.sample(random):
+            token_ids, segment_ids = self.tokenizer.encode(text, max_length=self.maxlen)
+            batch_token_ids.append(token_ids)
+            batch_segment_ids.append(segment_ids)
+            batch_labels.append([self.l2i.get(str(label))])
+            if len(batch_token_ids) == self.batch_size or is_end:
+                batch_token_ids = sequence_padding(batch_token_ids)
+                batch_segment_ids = sequence_padding(batch_segment_ids)
+                batch_labels = sequence_padding(batch_labels)
+                yield [batch_token_ids, batch_segment_ids], batch_labels
+                batch_token_ids, batch_segment_ids, batch_labels = [], [], []
+
+
+# DataGenerator只是一种为了节约内存的数据方式
+class MyDataGenerator:
     def __init__(self, data, l2i, tokenizer, categories, maxlen=128, batch_size=32, shuffle=True):
         self.data = data
         self.l2i = l2i
@@ -160,7 +186,7 @@ class DataGenerator:
             for i in idxs:
                 d = self.data[i]
                 text = d[1][:self.maxlen]
-                x1, x2 = self.tokenizer.encode(text,max_len=self.maxlen)  # token_ids, segment_ids
+                x1, x2 = self.tokenizer.encode(text,max_length=self.maxlen)  # token_ids, segment_ids
                 y = self.l2i.get(str(d[0]))
                 X1.append(x1)
                 X2.append(x2)
@@ -172,9 +198,11 @@ class DataGenerator:
                     yield [X1, X2], Y
                     X1, X2, Y = [], [], []
 
-def evaluate(data,predict):
+
+def evaluate(data, predict):
     total, right = 0., 0.
-    for x_true, y_true in data:
+    for x_true, y_true in tqdm(data):
+    # for x_true, y_true in data:
         y_pred = predict(x_true).argmax(axis=1)
         y_true = y_true[:, 0]
         total += len(y_true)
@@ -185,7 +213,8 @@ def evaluate(data,predict):
 class Evaluator(keras.callbacks.Callback):
     """评估与保存
     """
-    def __init__(self,model, model_path,valid_generator,test_generator):
+
+    def __init__(self, model, model_path, valid_generator, test_generator):
         self.best_val_acc = 0.
         self.model = model
         self.model_path = model_path
@@ -193,12 +222,19 @@ class Evaluator(keras.callbacks.Callback):
         self.test_generator = test_generator
 
     def on_epoch_end(self, epoch, logs=None):
-        val_acc = evaluate(self.valid_generator,self.model.predict)
+        val_acc = evaluate(self.valid_generator, self.model.predict)
         if val_acc > self.best_val_acc:
             self.best_val_acc = val_acc
-            self.model.save_weights('best_model.weights')
-        test_acc = evaluate(self.test_generator,self.model.predict)
+            self.model.save_weights(self.model_path)
+        # test_acc = evaluate(self.test_generator,self.model.predict)
         print(
-            u'val_acc: %.5f, best_val_acc: %.5f, test_acc: %.5f\n' %
-            (val_acc, self.best_val_acc, test_acc)
+            u'val_acc: %.5f, best_val_acc: %.5f\n' %
+            (val_acc, self.best_val_acc)
+        )
+
+    def on_train_end(self, logs=None):
+        test_acc = evaluate(self.test_generator, self.model.predict)
+        print(
+            u'best_val_acc: %.5f, test_acc: %.5f\n' %
+            (self.best_val_acc, test_acc)
         )

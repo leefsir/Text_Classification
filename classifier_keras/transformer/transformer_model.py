@@ -15,13 +15,13 @@ from keras.optimizers import Adam
 from keras.utils import to_categorical
 
 from basis_framework.basis_graph import BasisGraph
-from configs.path_config import MODEL_ROOT_PATH, BERT_MODEL_PATH
+from configs.path_config import MODEL_ROOT_PATH
 from layers_utils.transformer_utils.embedding import EmbeddingRet
 from layers_utils.transformer_utils.non_mask_layer import NonMaskingLayer
 from layers_utils.transformer_utils.transformer import build_encoders
 from layers_utils.transformer_utils.triangle_position_embedding import TriglePositiomEmbedding
 from utils.common_tools import save_json
-from utils.data_process import seq_padding
+from utils.data_process import seq_padding, MyDataGenerator
 from utils.logger import logger
 
 
@@ -103,6 +103,7 @@ class TransformerEncodeGraph(BasisGraph):
         save_json(jsons=self.i2l, json_path=self.index2label_path)
         save_json(jsons=self.parameters, json_path=self.path_parameters)
         model_code = self.model_code
+
         # DataGenerator只是一种为了节约内存的数据方式
         class DataGenerator:
             def __init__(self, data, l2i, tokenizer, categories, maxlen=128, batch_size=32, shuffle=True):
@@ -129,25 +130,25 @@ class TransformerEncodeGraph(BasisGraph):
                     for i in idxs:
                         d = self.data[i]
                         text = d[1][:self.maxlen].replace(' ', '')
-                        x = self.tokenizer.encode(text,algo_code=model_code)  # token_ids
+                        x = self.tokenizer.encode(text, algo_code=model_code)  # token_ids
                         # print(text)
                         # print(x)
                         y = self.l2i.get(str(d[0]))
                         X.append(x)
                         Y.append(y)
                         if len(X) == self.batch_size or i == idxs[-1]:
-                            X = seq_padding(X,0,self.maxlen)
+                            X = seq_padding(X, 0, self.maxlen)
                             Y = np.array(to_categorical(Y, self.categories))
                             # print("*"*10,X.shape)
                             yield (X, Y)
                             X, Y = [], []
 
-        train_D = DataGenerator(self.train_data, self.l2i, self.tokenizer, self.categories, self.max_len,
-                                self.batch_size,
-                                shuffle=True)
-        valid_D = DataGenerator(self.valid_data, self.l2i, self.tokenizer, self.categories, self.max_len,
-                                self.batch_size,
-                                shuffle=True)
+        train_D = MyDataGenerator(self.train_data, self.l2i, self.tokenizer, self.categories, self.max_len,
+                                  self.batch_size,
+                                  shuffle=True)
+        valid_D = MyDataGenerator(self.valid_data, self.l2i, self.tokenizer, self.categories, self.max_len,
+                                  self.batch_size,
+                                  shuffle=True)
         # test_D = DataGenerator(self.test_data, self.l2i,self.tokenizer, self.categories, self.max_len, self.batch_size,
         #                        shuffle=True)
 

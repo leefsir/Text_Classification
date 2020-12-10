@@ -10,6 +10,7 @@ import os
 
 from bert4keras.models import build_transformer_model
 from bert4keras.optimizers import extend_with_piecewise_linear_lr
+from bert4keras.tokenizers import Tokenizer
 from keras.layers import Dense, Lambda
 from keras.models import Model
 from keras.optimizers import Adam
@@ -18,7 +19,7 @@ from keras_bert import load_trained_model_from_checkpoint
 from basis_framework.basis_graph import BasisGraph
 from configs.path_config import BERT_MODEL_PATH, MODEL_ROOT_PATH
 from utils.common_tools import save_json
-from utils.data_process import DataGenerator, Evaluator
+from utils.data_process import DataGenerator, Evaluator, datagenerator
 from utils.logger import logger
 
 
@@ -41,6 +42,7 @@ class BertGraph(BasisGraph):
 
         super().__init__(self.parameters)
 
+        self.tokenizer = Tokenizer(self.vocab_path, do_lower_case=True)
     def model_create(self):
         bert = build_transformer_model(
             config_path=self.bert_config_path,
@@ -72,21 +74,16 @@ class BertGraph(BasisGraph):
         self.parameters['model_env_parameters']['trainable'] = False
         save_json(jsons=self.i2l, json_path=self.index2label_path)
         save_json(jsons=self.parameters, json_path=self.path_parameters)
-        train_D = DataGenerator(self.train_data, self.l2i, self.tokenizer, self.categories, self.max_len,
-                                self.batch_size,
-                                shuffle=True)
-        valid_D = DataGenerator(self.valid_data, self.l2i, self.tokenizer, self.categories, self.max_len,
-                                self.batch_size,
-                                shuffle=True)
-        test_D = DataGenerator(self.test_data, self.l2i,self.tokenizer, self.categories, self.max_len, self.batch_size,
-                               shuffle=True)
+        train_D = datagenerator(self.train_data, self.l2i, self.tokenizer, self.batch_size,self.max_len)
+        valid_D = datagenerator(self.valid_data, self.l2i, self.tokenizer, self.batch_size,self.max_len)
+        test_D = datagenerator(self.test_data, self.l2i, self.tokenizer, self.batch_size,self.max_len)
         # init_callback = super().callback()
         evaluator = Evaluator(self.model, self.model_path, valid_D,test_D)
         # init_callback.append(evaluator)
 
         # 模型训练
         history = self.model.fit_generator(
-            train_D.__iter__(),
+            train_D.forfit(),
             steps_per_epoch=len(train_D),
             epochs=self.epoch,
             callbacks=[evaluator],
@@ -99,7 +96,7 @@ class BertGraph(BasisGraph):
         #     validation_steps=len(valid_D),
         #     callbacks=self.callback(),
         # )
-        epoch = history.epoch[-1] + 1
-        acc = history.history['acc'][-1]
-        val_acc = history.history['val_acc'][-1]
-        logger.info("model:{}  last_epoch:{}  train_acc{}  val_acc{}".format(self.model_code, epoch, acc, val_acc))
+        # epoch = history.epoch[-1] + 1
+        # acc = history.history['acc'][-1]
+        # val_acc = history.history['val_acc'][-1]
+        # logger.info("model:{}  last_epoch:{}  train_acc{}  val_acc{}".format(self.model_code, epoch, acc, val_acc))
