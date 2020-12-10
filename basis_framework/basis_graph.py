@@ -4,6 +4,7 @@
 # datetime： 2020/12/1 11:06 
 # ide： PyCharm
 import os
+import random
 
 import numpy as np
 from keras.callbacks import TensorBoard, EarlyStopping, ModelCheckpoint
@@ -40,7 +41,7 @@ class BasisGraph():
         self.patience = self.hyper_parameters.get('patience', 2)  # 早停计数
         self.activation = self.hyper_parameters.get('activation', 'softmax')  # 分类激活函数,softmax或者signod
         self.loss = self.hyper_parameters.get('loss',
-                                              'categorical_crossentropy')  # 损失函数, mse, categorical_crossentropy, sparse_categorical_crossentropy, binary_crossentropy等
+                                              'sparse_categorical_crossentropy')  # 损失函数, mse, categorical_crossentropy, sparse_categorical_crossentropy, binary_crossentropy等
         self.metrics = self.hyper_parameters.get('metrics',
                                                  [
                                                      'accuracy'])  # acc, binary_accuracy, categorical_accuracy, sparse_categorical_accuracy, sparse_top_k_categorical_accuracy
@@ -50,6 +51,7 @@ class BasisGraph():
         self.train_data_path = self.hyper_parameters.get('train_data_path')
         if self.is_training and not self.train_data_path: raise Exception("No training data!")
         self.valid_data_path = self.hyper_parameters.get('valid_data_path')
+        self.test_data_path = self.hyper_parameters.get('test_data_path')
         self.token_dict = token_process(self.vocab_path)
         if not self.token_dict : raise Exception("No token_dict!")
         self.tokenizer = OurTokenizer(self.token_dict)
@@ -80,9 +82,15 @@ class BasisGraph():
                 self.valid_data_path = data2csv(self.valid_data_path, sep)
             _, _, self.valid_data = data_preprocess(self.valid_data_path)
         else:
-            split = int(len(self.train_data) * 0.8)
-            self.train_data = self.train_data[:split]
-            self.valid_data = self.train_data[split:]
+            data_len = len(self.train_data)
+            indexs = list(range(data_len))
+            random.shuffle(indexs)
+            sep = int(data_len * 0.8)
+            self.train_data ,self.valid_data = [self.train_data[i] for i in indexs[:sep]],[self.train_data[i] for i in indexs[sep:]]
+        if self.test_data_path:
+            _, _, self.test_data = data_preprocess(self.valid_data_path)
+        # self.train_data = self.train_data[:100]
+        # self.valid_data = self.valid_data[:100]
 
     def predict_process(self, sep='\t'):
         """

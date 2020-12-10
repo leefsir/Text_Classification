@@ -3,7 +3,7 @@
 # author： liwfeng
 # datetime： 2020/12/1 17:14 
 # ide： PyCharm
-from classifier.l01_bert.bert_model import BertGraph
+from classifier_keras.l01_bert.bert_model import BertGraph
 
 parameters = {
 'model_code':'thuc_news',

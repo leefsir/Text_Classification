@@ -6,7 +6,7 @@
 import os
 import sys
 
-from classifier.l02_albert.albert_model import AlbertGraph
+from classifier_keras.l02_albert.albert_model import AlbertGraph
 
 rootPath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(rootPath)

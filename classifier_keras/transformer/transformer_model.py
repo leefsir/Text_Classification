@@ -138,7 +138,8 @@ class TransformerEncodeGraph(BasisGraph):
                         if len(X) == self.batch_size or i == idxs[-1]:
                             X = seq_padding(X,0,self.maxlen)
                             Y = np.array(to_categorical(Y, self.categories))
-                            yield X, Y
+                            # print("*"*10,X.shape)
+                            yield (X, Y)
                             X, Y = [], []
 
         train_D = DataGenerator(self.train_data, self.l2i, self.tokenizer, self.categories, self.max_len,

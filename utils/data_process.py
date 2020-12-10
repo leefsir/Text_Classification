@@ -3,6 +3,7 @@
 # author： liwfeng
 # datetime： 2020/12/1 17:22 
 # ide： PyCharm
+import keras
 import pandas as pd
 import numpy as np
 import random
@@ -113,7 +114,7 @@ class OurTokenizer(Tokenizer):
 
     def encode(self, first, second=None, max_len=None,algo_code=None):
         if not algo_code:
-            super().encode(first, second=None, max_len=None)
+            return super().encode(first, second=None, max_len=None)
         else:
             first_tokens = self._tokenize(first)
             second_tokens = self._tokenize(second) if second is not None else None
@@ -158,16 +159,46 @@ class DataGenerator:
             X1, X2, Y = [], [], []
             for i in idxs:
                 d = self.data[i]
-                text = d[1][:self.maxlen].replace(' ', '')
-                x1, x2 = self.tokenizer.encode(first=text)  # token_ids, segment_ids
+                text = d[1][:self.maxlen]
+                x1, x2 = self.tokenizer.encode(text,max_len=self.maxlen)  # token_ids, segment_ids
                 y = self.l2i.get(str(d[0]))
                 X1.append(x1)
                 X2.append(x2)
-                Y.append(y)
+                Y.append([y])
                 if len(X1) == self.batch_size or i == idxs[-1]:
                     X1 = seq_padding(X1)
                     X2 = seq_padding(X2)
-                    Y = np.array(to_categorical(Y, self.categories))
+                    Y = seq_padding(Y)
                     yield [X1, X2], Y
                     X1, X2, Y = [], [], []
 
+def evaluate(data,predict):
+    total, right = 0., 0.
+    for x_true, y_true in data:
+        y_pred = predict(x_true).argmax(axis=1)
+        y_true = y_true[:, 0]
+        total += len(y_true)
+        right += (y_true == y_pred).sum()
+    return right / total
+
+
+class Evaluator(keras.callbacks.Callback):
+    """评估与保存
+    """
+    def __init__(self,model, model_path,valid_generator,test_generator):
+        self.best_val_acc = 0.
+        self.model = model
+        self.model_path = model_path
+        self.valid_generator = valid_generator
+        self.test_generator = test_generator
+
+    def on_epoch_end(self, epoch, logs=None):
+        val_acc = evaluate(self.valid_generator,self.model.predict)
+        if val_acc > self.best_val_acc:
+            self.best_val_acc = val_acc
+            self.model.save_weights('best_model.weights')
+        test_acc = evaluate(self.test_generator,self.model.predict)
+        print(
+            u'val_acc: %.5f, best_val_acc: %.5f, test_acc: %.5f\n' %
+            (val_acc, self.best_val_acc, test_acc)
+        )

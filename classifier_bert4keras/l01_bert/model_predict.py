@@ -3,13 +3,13 @@
 # author： liwfeng
 # datetime： 2020/12/1 17:14 
 # ide： PyCharm
-from classifier.l02_albert.albert_model import AlbertGraph
+from classifier_bert4keras.l01_bert.bert_mode import BertGraph
 
 parameters = {
-    'model_code': 'thuc_news',
-    'model_env_parameters': {'is_training': False},
+'model_code':'thuc_news',
+'model_env_parameters':{'is_training':False},
 }
-bertModel = AlbertGraph(parameters)
+bertModel = BertGraph(parameters)
 
 while True:
     text = input()
