@@ -25,7 +25,7 @@ parameters = {
     'test_data_path':test_data_path,
     'batch_size':128,
     'max_len':30,
-    'epoch':2,
+    'epoch':10,
     'lr':1e-5,
 },
 'model_env_parameters':{'is_training':True,},

@@ -6,6 +6,7 @@
 import codecs
 import json
 import os
+import random
 import re
 import jieba
 import pandas as pd
@@ -188,6 +189,15 @@ def data_preprocess(data_path, label='label'):
     return i2l, l2i, data
 
 
+def split(train_data, sep=0.8):
+    data_len = len(train_data)
+    indexs = list(range(data_len))
+    random.shuffle(indexs)
+    sep = int(data_len * sep)
+    train_data, valid_data = [train_data[i] for i in indexs[:sep]], [train_data[i] for i in
+                                                                     indexs[sep:]]
+    # self.train_data ,self.valid_data = [self.train_data[i] for i in indexs[:sep]],[self.train_data[i] for i in indexs[sep:]]
+    return train_data, valid_data
 
 if __name__ == '__main__':
     data_preprocess('E:/lwf_practice/Text_Classification/corpus/baidu_qa_2019/baike_qa_train.csv')
