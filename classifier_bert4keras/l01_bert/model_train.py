@@ -31,4 +31,4 @@ parameters = {
 'model_env_parameters':{'is_training':True,},
 }
 bertModel = BertGraph(parameters)
-bertModel.fit_generator()
+bertModel.train()
