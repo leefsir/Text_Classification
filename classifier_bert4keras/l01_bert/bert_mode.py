@@ -45,11 +45,11 @@ class BertGraph(BasisGraph):
         else:
             test_data = []
         self.train_generator = datagenerator(train_data, self.label2index, self.tokenizer, self.batch_size,
-                                                       self.max_len)
+                                             self.max_len)
         self.valid_generator = datagenerator(valid_data, self.label2index, self.tokenizer, self.batch_size,
-                                                       self.max_len)
+                                             self.max_len)
         self.test_generator = datagenerator(test_data, self.label2index, self.tokenizer, self.batch_size,
-                                                      self.max_len)
+                                            self.max_len)
 
     def build_model(self):
         bert = build_transformer_model(
@@ -69,7 +69,7 @@ class BertGraph(BasisGraph):
         res = self.index2label.get(str(np.argmax(pre[0])))
         return res
 
-    def model_compile(self):
+    def compile_model(self):
         # 派生为带分段线性学习率的优化器。
         # 其中name参数可选，但最好填入，以区分不同的派生优化器。
         AdamLR = extend_with_piecewise_linear_lr(Adam, name='AdamLR')
@@ -91,20 +91,20 @@ class BertGraph(BasisGraph):
             epochs=self.epoch,
             callbacks=[evaluator],
         )
+
+
 if __name__ == '__main__':
     params = {
         'model_code': 'thuc_news_bert',
-        'hyper_parameters': {
-            'train_data_path':  CORPUS_ROOT_PATH + '/thuc_news/train.txt',
-            'valid_data_path': CORPUS_ROOT_PATH + '/thuc_news/dev.txt',
-            'test_data_path': CORPUS_ROOT_PATH + '/thuc_news/test.txt',
-            'batch_size': 128,
-            'max_len': 30,
-            'epoch': 10,
-            'lr': 1e-5,
-            'gpu_id': 1,
-        },
-        'model_env_parameters': {'is_training': True, },
+
+        'train_data_path': CORPUS_ROOT_PATH + '/thuc_news/train.txt',
+        'valid_data_path': CORPUS_ROOT_PATH + '/thuc_news/dev.txt',
+        'test_data_path': CORPUS_ROOT_PATH + '/thuc_news/test.txt',
+        'batch_size': 128,
+        'max_len': 30,
+        'epoch': 10,
+        'lr': 1e-5,
+        'gpu_id': 1,
     }
-    bertModel = BertGraph(params)
+    bertModel = BertGraph(params,Train=True)
     bertModel.train()
