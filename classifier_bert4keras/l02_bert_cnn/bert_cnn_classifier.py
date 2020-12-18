@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # author： liwfeng
-# datetime： 2020/12/1 15:13 
+# datetime： 2020/12/1 15:13
 # ide： PyCharm
 
 from __future__ import print_function, division
@@ -9,20 +9,48 @@ from __future__ import print_function, division
 import numpy as np
 from bert4keras.models import build_transformer_model
 from bert4keras.optimizers import extend_with_piecewise_linear_lr
-from keras.layers import Dense, Lambda
+from keras.layers import Dense, Dropout, Flatten, MaxPooling1D, concatenate, Conv1D, Lambda, SpatialDropout1D
 from keras.models import Model
 from keras.optimizers import Adam
 
 from basis_framework.basis_graph_last import BasisGraph
 from configs.path_config import CORPUS_ROOT_PATH
 from utils.common_tools import data2csv, data_preprocess, split
-from utils.data_process import datagenerator, Evaluator
+from utils.data_process import datagenerator,Evaluator
 
+
+from keras.engine import Layer
+
+
+class NonMaskingLayer(Layer):
+    """
+    fix convolutional 1D can't receive masked input, detail: https://github.com/keras-team/keras/issues/4978
+    thanks for https://github.com/jacoxu
+    """
+
+    def __init__(self, **kwargs):
+        self.supports_masking = True
+        super(NonMaskingLayer, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        pass
+
+    def compute_mask(self, input, input_mask=None):
+        # do not pass the mask to the next layers
+        return None
+
+    def call(self, x, mask=None):
+        return x
+
+    def get_output_shape_for(self, input_shape):
+        return input_shape
 
 class BertGraph(BasisGraph):
     def __init__(self, params={}, Train=False):
         if not params.get('model_code'):
             params['model_code'] = 'classifier'
+        self.filters = params.get('filters', [3, 4, 5])  # 卷积核大小
+        self.filters_num = params.get('filters_num', 300)  # 核数
         super().__init__(params, Train)
 
     def data_process(self, sep='\t'):
@@ -47,11 +75,11 @@ class BertGraph(BasisGraph):
         else:
             test_data = []
         self.train_generator = datagenerator(train_data, self.label2index, self.tokenizer, self.batch_size,
-                                             self.max_len)
+                                                     self.max_len)
         self.valid_generator = datagenerator(valid_data, self.label2index, self.tokenizer, self.batch_size,
-                                             self.max_len)
+                                                     self.max_len)
         self.test_generator = datagenerator(test_data, self.label2index, self.tokenizer, self.batch_size,
-                                            self.max_len)
+                                                    self.max_len)
 
     def build_model(self):
         bert = build_transformer_model(
@@ -59,10 +87,23 @@ class BertGraph(BasisGraph):
             checkpoint_path=self.bert_checkpoint_path,
             return_keras_model=False,
         )
-        output = Lambda(lambda x: x[:, 0], name='CLS-token')(bert.model.output)  # 取出[cls]层对应的向量来做分类
-        print(output.shape)
-        output = Dense(self.num_classes, activation=self.activation, kernel_initializer=bert.initializer)(
-            output)  # 全连接层激活函数分类
+
+        x = Lambda(lambda x: x, output_shape=lambda s: s)(bert.model.output)
+        x = SpatialDropout1D(rate=self.dropout)(x)
+        print(x.shape)
+        conv_pools = []
+        # 词窗大小分别为3,4,5
+        for filter in self.filters:
+            cnn = Conv1D(self.filters_num, filter, padding='same', strides=1, activation='relu')(x)
+            cnn = MaxPooling1D(pool_size=self.max_len - filter + 1)(cnn)
+            print(cnn.shape)
+            conv_pools.append(cnn)
+        # 合并三个模型的输出向量
+        cnn = concatenate(conv_pools, axis=-1)
+        print(cnn.shape)
+        flat = Flatten()(cnn)
+        drop = Dropout(self.dropout)(flat)
+        output = Dense(self.num_classes, activation=self.activation)(drop)
         self.model = Model(bert.model.input, output)
         print(self.model.summary(150))
 
@@ -98,16 +139,21 @@ class BertGraph(BasisGraph):
 
 if __name__ == '__main__':
     params = {
-        'model_code': 'thuc_news_bert_15',
-
+        'model_code': 'thuc_news_bertcnn',
         'train_data_path': CORPUS_ROOT_PATH + '/thuc_news/train.txt',
         'valid_data_path': CORPUS_ROOT_PATH + '/thuc_news/dev.txt',
         'test_data_path': CORPUS_ROOT_PATH + '/thuc_news/test.txt',
         'batch_size': 128,
         'max_len': 30,
-        'epoch': 10,
-        'lr': 1e-5,
-        'gpu_id': 0,
+        'epoch': 2,
+        'learning_rate': 1e-4,
+        'gpu_id': 1,
     }
-    bertModel = BertGraph(params,Train=True)
+    bertModel = BertGraph(params, Train=True)
     bertModel.train()
+else:
+    params = {
+        'model_code': 'thuc_news_bert',  # 此处与训练时code保持一致
+        'gpu_id': 1,
+    }
+    bertModel = BertGraph(params)
