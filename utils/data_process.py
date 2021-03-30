@@ -137,6 +137,7 @@ def seq_padding(X, padding=0, max_len: int = 0):
     ])
 
 
+from keras.utils.np_utils import to_categorical
 # DataGenerator只是一种为了节约内存的数据方式
 class datagenerator(DataGenerator):
     def __init__(self, data, l2i, tokenizer, batch_size, maxlen=128):
@@ -147,15 +148,22 @@ class datagenerator(DataGenerator):
 
     def __iter__(self,random=False):
         batch_token_ids, batch_segment_ids, batch_labels = [], [], []
-        for is_end, (label, text) in self.sample(random):
-            token_ids, segment_ids = self.tokenizer.encode(text, max_length=self.maxlen)
+        # for is_end, (label, text) in self.sample(random):
+        for is_end, (text,label) in self.sample(random):
+            # print(text,"*************")
+            # print(label,"=================")
+            token_ids, segment_ids = self.tokenizer.encode(text, maxlen=self.maxlen)
+            # print(len(token_ids),"999")
+            # print(len(segment_ids),"888")
             batch_token_ids.append(token_ids)
             batch_segment_ids.append(segment_ids)
-            batch_labels.append([self.l2i.get(str(label))])
+            # batch_labels.append([int(self.l2i.get(str(label)))])
+            batch_labels.append([int(label)])
             if len(batch_token_ids) == self.batch_size or is_end:
-                batch_token_ids = sequence_padding(batch_token_ids)
-                batch_segment_ids = sequence_padding(batch_segment_ids)
-                batch_labels = sequence_padding(batch_labels)
+                batch_token_ids = sequence_padding(batch_token_ids,length=self.maxlen)
+                batch_segment_ids = sequence_padding(batch_segment_ids,length=self.maxlen)
+                batch_labels = sequence_padding(batch_labels)  # 多分类
+                # batch_labels = to_categorical(batch_labels)  # 二分类
                 yield [batch_token_ids, batch_segment_ids], batch_labels
                 batch_token_ids, batch_segment_ids, batch_labels = [], [], []
 
@@ -233,8 +241,9 @@ class Evaluator(keras.callbacks.Callback):
         )
 
     def on_train_end(self, logs=None):
-        test_acc = evaluate(self.test_generator, self.model.predict)
-        print(
-            u'best_val_acc: %.5f, test_acc: %.5f\n' %
-            (self.best_val_acc, test_acc)
-        )
+        if self.test_generator:
+            test_acc = evaluate(self.test_generator, self.model.predict)
+            print(
+                u'best_val_acc: %.5f, test_acc: %.5f\n' %
+                (self.best_val_acc, test_acc)
+            )

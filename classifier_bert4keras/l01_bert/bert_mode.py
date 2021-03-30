@@ -98,15 +98,17 @@ class BertGraph(BasisGraph):
 
 if __name__ == '__main__':
     params = {
-        'model_code': 'thuc_news_bert_15',
+        'model_code': 'hemei_aichatbot_2',
 
-        'train_data_path': CORPUS_ROOT_PATH + '/thuc_news/train.txt',
-        'valid_data_path': CORPUS_ROOT_PATH + '/thuc_news/dev.txt',
-        'test_data_path': CORPUS_ROOT_PATH + '/thuc_news/test.txt',
+        'train_data_path': CORPUS_ROOT_PATH + '/hemei_aichatbot/data.csv',
+        # 'valid_data_path': CORPUS_ROOT_PATH + '/thuc_news/dev.txt',
+        # 'test_data_path': CORPUS_ROOT_PATH + '/thuc_news/test.txt',
+        'activation': 'sigmoid',
+        'loss': 'binary_crossentropy',
         'batch_size': 128,
         'max_len': 30,
-        'epoch': 10,
-        'lr': 1e-5,
+        'epoch': 3,
+        'learning_rate': 3e-5,
         'gpu_id': 0,
     }
     bertModel = BertGraph(params,Train=True)

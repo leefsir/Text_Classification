@@ -5,18 +5,24 @@
 # ide： PyCharm
 import os
 
+import jieba
 from bert4keras.tokenizers import Tokenizer
 
-from configs.path_config import BERT_MODEL_PATH, MODEL_ROOT_PATH
+from configs.path_config import BERT_MODEL_PATH, MODEL_ROOT_PATH, WoNeZha_MODEL_PATH
 from utils.common_tools import save_json, load_json
 
 
 class BasisGraph():
     def __init__(self, params={}, Train=False):
-        self.bert_config_path = os.path.join(BERT_MODEL_PATH + "/bert_config.json")
-        self.bert_checkpoint_path = os.path.join(BERT_MODEL_PATH + "/bert_model.ckpt")
-        self.bert_vocab_path = os.path.join(BERT_MODEL_PATH + "/vocab.txt")
-        self.tokenizer = Tokenizer(self.bert_vocab_path)
+        # self.bert_config_path = os.path.join(BERT_MODEL_PATH + "/bert_config.json")
+        # self.bert_checkpoint_path = os.path.join(BERT_MODEL_PATH + "/bert_model.ckpt")
+        # self.bert_vocab_path = os.path.join(BERT_MODEL_PATH + "/vocab.txt")
+        # self.tokenizer = Tokenizer(self.bert_vocab_path)
+        self.bert_config_path = os.path.join(WoNeZha_MODEL_PATH + "/bert_config.json")
+        self.bert_checkpoint_path = os.path.join(WoNeZha_MODEL_PATH + "/bert_model.ckpt")
+        self.bert_vocab_path = os.path.join(WoNeZha_MODEL_PATH + "/vocab.txt")
+        self.tokenizer = Tokenizer(self.bert_vocab_path, do_lower_case=True,
+                                   pre_tokenize=lambda s: jieba.cut(s, HMM=False))
         self.model_code = params.get('model_code')
         if not self.model_code: raise Exception("No model code!,params must have a 'model_code'")
         self.model_dir = os.path.join(MODEL_ROOT_PATH, self.model_code)
@@ -36,7 +42,7 @@ class BasisGraph():
         self.bert_layers = params.get('bert_layers', 12)
         self.crf_lr_multiplier = params.get('crf_lr_multiplier', 1000)  # 必要时扩大CRF层的学习率
         self.gpu_id = params.get("gpu_id", None)
-        self.activation = params.get('activation', 'softmax')  # 分类激活函数,softmax或者signod
+        self.activation = params.get('activation', 'softmax')  # 分类激活函数,softmax或者signmod
         self.loss = params.get('loss','sparse_categorical_crossentropy')
         # self.loss = params.get('loss','categorical_crossentropy')
         self.metrics = params.get('metrics',['accuracy'])

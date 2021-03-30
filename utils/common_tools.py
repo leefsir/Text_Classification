@@ -12,6 +12,41 @@ import jieba
 import pandas as pd
 import numpy as np
 
+from configs.path_config import CORPUS_ROOT_PATH
+
+
+def json_data_process(path):
+    index2label,ret_data = {},[]
+    # with open(path, 'r', encoding='utf-8') as fj:
+    #     json_data = json.load(fj)
+    json_data = open(path)
+    # json_data = json.load(open(path, encoding='utf-8'))
+    for line in json_data.readlines():
+        data = json.loads(line)
+        index = data.get("label")
+        label = data.get("label_des")
+        sentence = data.get("sentence")
+        ret_data.append([sentence,index])
+        if not index2label.get(index):index2label[index]=label
+    label2index = {l: i for i, l in index2label.items()}
+    labels = list(label2index.keys())
+    return index2label,label2index,labels,ret_data
+
+def txt_data_process(path):
+    index2label,ret_data = {},[]
+    json_data = open(path)
+    for line in json_data.readlines():
+        line = line.strip()
+        line = line.split('\t')
+        index = line[1]
+        label = line[1]
+        ret_data.append([line[0],line[1]])
+        if not index2label.get(index):index2label[index]=label
+    label2index = {l: i for i, l in index2label.items()}
+    labels = list(label2index.keys())
+    return index2label,label2index,labels,ret_data
+
+
 
 def data2csv(data_path, sep):
     # 训练数据、测试数据和标签转化为模型输入格式
@@ -181,7 +216,7 @@ def data_preprocess(data_path, label='label',usecols=['label','content']):
     :param data_path:
     :return:
     """
-    df = pd.read_csv(data_path,usecols=usecols).dropna()
+    df = pd.read_csv(data_path,usecols=usecols,sep='\t').dropna()
     label_unique = df[label].unique().tolist()
     data = df.values.tolist()
     i2l = {i: str(v) for i, v in enumerate(label_unique)}
@@ -200,4 +235,5 @@ def split(train_data, sep=0.8):
     return train_data, valid_data
 
 if __name__ == '__main__':
-    data_preprocess('E:/lwf_practice/Text_Classification/corpus/baidu_qa_2019/baike_qa_train.csv')
+    # data_preprocess('E:/lwf_practice/Text_Classification/corpus/baidu_qa_2019/baike_qa_train.csv')
+    json_data_process(CORPUS_ROOT_PATH + '/iflytek_public/train.json')

@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # author： liwfeng
-# datetime： 2020/12/1 15:13
+# datetime： 2021/3/29 14:13 
 # ide： PyCharm
+
 
 from __future__ import print_function, division
 import os
@@ -10,18 +11,18 @@ import sys
 
 rootPath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(rootPath)
+import jieba
 import numpy as np
 from bert4keras.models import build_transformer_model
 from bert4keras.optimizers import extend_with_piecewise_linear_lr
 from keras.layers import Dense, Dropout, Flatten, MaxPooling1D, concatenate, Conv1D, Lambda, SpatialDropout1D
 from keras.models import Model
 from keras.optimizers import Adam
-
+from bert4keras.tokenizers import Tokenizer
 from basis_framework.basis_graph_last import BasisGraph
-from configs.path_config import CORPUS_ROOT_PATH
-from utils.common_tools import data2csv, data_preprocess, split
-from utils.data_process import datagenerator,Evaluator
-
+from configs.path_config import CORPUS_ROOT_PATH, WoNeZha_MODEL_PATH
+from utils.common_tools import data2csv, data_preprocess, split, json_data_process, txt_data_process
+from utils.data_process import datagenerator, Evaluator
 
 from keras.engine import Layer
 
@@ -49,6 +50,7 @@ class NonMaskingLayer(Layer):
     def get_output_shape_for(self, input_shape):
         return input_shape
 
+
 class BertGraph(BasisGraph):
     def __init__(self, params={}, Train=False):
         if not params.get('model_code'):
@@ -57,38 +59,38 @@ class BertGraph(BasisGraph):
         self.filters_num = params.get('filters_num', 300)  # 核数
         super().__init__(params, Train)
 
+
     def data_process(self, sep='\t'):
         """
         数据处理
         :return:
         """
-        if '.csv' not in self.train_data_path:
-            self.train_data_path = data2csv(self.train_data_path, sep)
-        self.index2label, self.label2index, self.labels, train_data = data_preprocess(self.train_data_path)
+        self.index2label, self.label2index, self.labels, train_data = json_data_process(self.train_data_path)
+        # self.index2label, self.label2index, self.labels, train_data = txt_data_process(self.train_data_path)
+        print(self.label2index,"1111111")
         self.num_classes = len(self.index2label)
         if self.valid_data_path:
-            if '.csv' not in self.valid_data_path:
-                self.valid_data_path = data2csv(self.valid_data_path, sep)
-            _, _, _, valid_data = data_preprocess(self.valid_data_path)
+            _, _, _, valid_data = json_data_process(self.valid_data_path)
+            # _, _, _, valid_data = txt_data_process(self.valid_data_path)
         else:
             train_data, valid_data = split(train_data, self.split)
         if self.test_data_path:
-            if '.csv' not in self.test_data_path:
-                self.test_data_path = data2csv(self.test_data_path, sep)
-            _, _, _, test_data = data_preprocess(self.test_data_path)
+            _, _, _, test_data = json_data_process(self.test_data_path)
+            # _, _, _, test_data = txt_data_process(self.test_data_path)
         else:
             test_data = []
         self.train_generator = datagenerator(train_data, self.label2index, self.tokenizer, self.batch_size,
-                                                     self.max_len)
+                                             self.max_len)
         self.valid_generator = datagenerator(valid_data, self.label2index, self.tokenizer, self.batch_size,
-                                                     self.max_len)
+                                             self.max_len)
         self.test_generator = datagenerator(test_data, self.label2index, self.tokenizer, self.batch_size,
-                                                    self.max_len)
+                                            self.max_len)
 
     def build_model(self):
         bert = build_transformer_model(
             config_path=self.bert_config_path,
             checkpoint_path=self.bert_checkpoint_path,
+            model="nezha",
             return_keras_model=False,
             sequence_length=self.max_len,
         )
@@ -144,21 +146,32 @@ class BertGraph(BasisGraph):
 
 if __name__ == '__main__':
     params = {
-        'model_code': 'thuc_news_bertcnn',
-        'train_data_path': CORPUS_ROOT_PATH + '/thuc_news/train.txt',
-        'valid_data_path': CORPUS_ROOT_PATH + '/thuc_news/dev.txt',
-        'test_data_path': CORPUS_ROOT_PATH + '/thuc_news/test.txt',
-        'batch_size': 256,
-        'max_len': 30,
+        'model_code': 'iflytek_public_wonezhacnn',
+        'train_data_path': CORPUS_ROOT_PATH + '/iflytek_public/train.json',
+        'valid_data_path': CORPUS_ROOT_PATH + '/iflytek_public/dev.json',
+        # 'test_data_path': CORPUS_ROOT_PATH + '/iflytek_public/test.txt',
+        'batch_size': 16,
+        'max_len': 256,
         'epoch': 10,
         'learning_rate': 1e-4,
-        'gpu_id': 1,
+        'gpu_id': 0,
     }
+    # params = {
+    #     'model_code': 'thuc_news_bertcnn1',
+    #     'train_data_path': CORPUS_ROOT_PATH + '/thuc_news/train.txt',
+    #     'valid_data_path': CORPUS_ROOT_PATH + '/thuc_news/dev.txt',
+    #     'test_data_path': CORPUS_ROOT_PATH + '/thuc_news/test.txt',
+    #     'batch_size': 64,
+    #     'max_len': 30,
+    #     'epoch': 10,
+    #     'learning_rate': 1e-4,
+    #     'gpu_id': 1,
+    # }
     bertModel = BertGraph(params, Train=True)
     bertModel.train()
 else:
     params = {
-        'model_code': 'thuc_news_bertcnn',  # 此处与训练时code保持一致
+        'model_code': 'iflytek_public_wonezhacnn',  # 此处与训练时code保持一致
         'gpu_id': 1,
     }
     bertModel = BertGraph(params)
