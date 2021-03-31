@@ -11,7 +11,7 @@ import os
 
 from bert4keras.snippets import DataGenerator, sequence_padding
 from keras.utils import to_categorical
-from keras_bert import Tokenizer
+# from keras_bert import Tokenizer
 from utils.common_tools import save_json, load_json
 from tqdm import tqdm
 
@@ -98,31 +98,31 @@ def fig_generator_process():
 
 
 # 重写tokenizer
-class OurTokenizer(Tokenizer):
-    def __init__(self, token_dict):
-        self.vocab_size = len(token_dict)
-        super().__init__(token_dict)
-
-    def _tokenize(self, text):
-        R = []
-        for c in text:
-            if c in self._token_dict:
-                R.append(c)
-            elif self._is_space(c):
-                R.append('[unused1]')  # 用[unused1]来表示空格类字符
-            else:
-                R.append('[UNK]')  # 不在列表的字符用[UNK]表示
-        return R
-
-    def encode(self, first, second=None, max_length=None, algo_code=None):
-        if not algo_code:
-            return super().encode(first, second=None, max_len=None)
-        else:
-            first_tokens = self._tokenize(first)
-            second_tokens = self._tokenize(second) if second is not None else None
-            self._truncate(first_tokens, second_tokens, max_length)
-            token_ids = self._convert_tokens_to_ids(first_tokens)
-            return token_ids
+# class OurTokenizer(Tokenizer):
+#     def __init__(self, token_dict):
+#         self.vocab_size = len(token_dict)
+#         super().__init__(token_dict)
+#
+#     def _tokenize(self, text):
+#         R = []
+#         for c in text:
+#             if c in self._token_dict:
+#                 R.append(c)
+#             elif self._is_space(c):
+#                 R.append('[unused1]')  # 用[unused1]来表示空格类字符
+#             else:
+#                 R.append('[UNK]')  # 不在列表的字符用[UNK]表示
+#         return R
+#
+#     def encode(self, first, second=None, max_length=None, algo_code=None):
+#         if not algo_code:
+#             return super().encode(first, second=None, max_len=None)
+#         else:
+#             first_tokens = self._tokenize(first)
+#             second_tokens = self._tokenize(second) if second is not None else None
+#             self._truncate(first_tokens, second_tokens, max_length)
+#             token_ids = self._convert_tokens_to_ids(first_tokens)
+#             return token_ids
 
 
 # 让每条文本的长度相同，用0填充
@@ -148,8 +148,8 @@ class datagenerator(DataGenerator):
 
     def __iter__(self,random=False):
         batch_token_ids, batch_segment_ids, batch_labels = [], [], []
-        # for is_end, (label, text) in self.sample(random):
-        for is_end, (text,label) in self.sample(random):
+        for is_end, (label, text) in self.sample(random):
+        # for is_end, (text,label) in self.sample(random):
             # print(text,"*************")
             # print(label,"=================")
             token_ids, segment_ids = self.tokenizer.encode(text, maxlen=self.maxlen)

@@ -15,6 +15,7 @@ LOG_NAME = "classification.log"
 # 模型文件路径
 MODEL_ROOT_PATH = os.path.join(path_root,'models')
 BERT_MODEL_PATH = os.path.join(MODEL_ROOT_PATH,'chinese_L-12_H-768_A-12')
+BERT_MODEL_PATH = "/home/hemei/lwfeng/lwf_work/pf_algo_service/models/bert/chinese_L-12_H-768_A-12"
 WoNeZha_MODEL_PATH = os.path.join(MODEL_ROOT_PATH,'chinese_wonezha_L-12_H-768_A-12')
 
 

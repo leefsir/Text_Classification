@@ -14,16 +14,20 @@ from utils.common_tools import save_json, load_json
 
 class BasisGraph():
     def __init__(self, params={}, Train=False):
-        # self.bert_config_path = os.path.join(BERT_MODEL_PATH + "/bert_config.json")
-        # self.bert_checkpoint_path = os.path.join(BERT_MODEL_PATH + "/bert_model.ckpt")
-        # self.bert_vocab_path = os.path.join(BERT_MODEL_PATH + "/vocab.txt")
-        # self.tokenizer = Tokenizer(self.bert_vocab_path)
-        self.bert_config_path = os.path.join(WoNeZha_MODEL_PATH + "/bert_config.json")
-        self.bert_checkpoint_path = os.path.join(WoNeZha_MODEL_PATH + "/bert_model.ckpt")
-        self.bert_vocab_path = os.path.join(WoNeZha_MODEL_PATH + "/vocab.txt")
-        self.tokenizer = Tokenizer(self.bert_vocab_path, do_lower_case=True,
-                                   pre_tokenize=lambda s: jieba.cut(s, HMM=False))
         self.model_code = params.get('model_code')
+        if "nezha" in self.model_code:
+            self.bert_config_path = os.path.join(WoNeZha_MODEL_PATH + "/bert_config.json")
+            self.bert_checkpoint_path = os.path.join(WoNeZha_MODEL_PATH + "/bert_model.ckpt")
+            self.bert_vocab_path = os.path.join(WoNeZha_MODEL_PATH + "/vocab.txt")
+            self.tokenizer = Tokenizer(self.bert_vocab_path, do_lower_case=True,
+                                       pre_tokenize=lambda s: jieba.cut(s, HMM=False))
+        else:
+            self.bert_config_path = os.path.join(BERT_MODEL_PATH + "/bert_config.json")
+            self.bert_checkpoint_path = os.path.join(BERT_MODEL_PATH + "/bert_model.ckpt")
+            self.bert_vocab_path = os.path.join(BERT_MODEL_PATH + "/vocab.txt")
+            self.tokenizer = Tokenizer(self.bert_vocab_path)
+
+
         if not self.model_code: raise Exception("No model code!,params must have a 'model_code'")
         self.model_dir = os.path.join(MODEL_ROOT_PATH, self.model_code)
         if not os.path.exists(self.model_dir):os.makedirs(self.model_dir, exist_ok=True)

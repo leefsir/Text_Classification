@@ -8,6 +8,10 @@ from __future__ import print_function, division
 import os
 import sys
 
+import time
+from bert4keras.snippets import sequence_padding
+from sklearn.metrics import classification_report
+
 rootPath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(rootPath)
 import numpy as np
@@ -114,7 +118,9 @@ class BertGraph(BasisGraph):
 
     def predict(self, text):
         token_ids, segment_ids = self.tokenizer.encode(text)
-        pre = self.model.predict([[token_ids], [segment_ids]])
+        token_ids = sequence_padding([token_ids], length=self.max_len)
+        segment_ids = sequence_padding([segment_ids], length=self.max_len)
+        pre = self.model.predict([token_ids, segment_ids])
         res = self.index2label.get(str(np.argmax(pre[0])))
         return res
 
@@ -140,7 +146,30 @@ class BertGraph(BasisGraph):
             epochs=self.epoch,
             callbacks=[evaluator],
         )
+    def data_score(self, text_path):
+        time_start = time.time()
+        # 测试集的准确率
+        if '.csv' not in text_path:
+            text_path = data2csv(text_path, sep='\t')
+        _, _, _, test_data = data_preprocess(text_path)
+        y_pred = []
+        y_true = []
+        for label, text in test_data:
+            y_true.append(self.label2index[str(label)])
+            token_ids, segment_ids = self.tokenizer.encode(text, max_length=self.max_len)  # maxlen 新版本
+            token_ids = sequence_padding([token_ids], length=self.max_len)
+            segment_ids = sequence_padding([segment_ids], length=self.max_len)
+            pred = self.model.predict([token_ids, segment_ids])
+            pred = np.argmax(pred[0])
+            y_pred.append(pred)
 
+        print("data pred ok!")
+        # 评估
+        target_names = [str(label) for label in self.labels]
+        report_predict = classification_report(y_true, y_pred,
+                                               target_names=target_names, digits=9)
+        print(report_predict)
+        print("耗时:" + str(time.time() - time_start))
 
 if __name__ == '__main__':
     params = {
@@ -148,14 +177,17 @@ if __name__ == '__main__':
         'train_data_path': CORPUS_ROOT_PATH + '/thuc_news/train.txt',
         'valid_data_path': CORPUS_ROOT_PATH + '/thuc_news/dev.txt',
         'test_data_path': CORPUS_ROOT_PATH + '/thuc_news/test.txt',
-        'batch_size': 256,
+        'batch_size': 128,
         'max_len': 30,
-        'epoch': 10,
+        'epoch': 4,
         'learning_rate': 1e-4,
-        'gpu_id': 1,
+        'gpu_id': 0,
     }
-    bertModel = BertGraph(params, Train=True)
-    bertModel.train()
+    # bertModel = BertGraph(params, Train=True)
+    # bertModel.train()
+    bertModel = BertGraph(params)
+    data_path = CORPUS_ROOT_PATH + '/thuc_news/test.csv'
+    print(bertModel.data_score(data_path))
 else:
     params = {
         'model_code': 'thuc_news_bertcnn',  # 此处与训练时code保持一致

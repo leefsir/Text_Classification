@@ -26,7 +26,7 @@ def json_data_process(path):
         index = data.get("label")
         label = data.get("label_des")
         sentence = data.get("sentence")
-        ret_data.append([sentence,index])
+        ret_data.append([index,sentence])
         if not index2label.get(index):index2label[index]=label
     label2index = {l: i for i, l in index2label.items()}
     labels = list(label2index.keys())
@@ -56,8 +56,8 @@ def data2csv(data_path, sep):
         contents = f.readlines()
         for line in contents:
             line = line.split(sep)
-            label.append(line[1])
-            content.append(line[0])
+            label.append(line[1].strip())
+            content.append(line[0].strip())
     data = {}
     data['label'] = label
     data['content'] = content
@@ -210,13 +210,13 @@ def token_process(vocab_path):
     return token_dict
 
 
-def data_preprocess(data_path, label='label',usecols=['label','content']):
+def data_preprocess(data_path, label='label',usecols=['content','label']):
     """
     处理数据返回类别标签转换字典
     :param data_path:
     :return:
     """
-    df = pd.read_csv(data_path,usecols=usecols,sep='\t').dropna()
+    df = pd.read_csv(data_path,usecols=usecols).dropna()
     label_unique = df[label].unique().tolist()
     data = df.values.tolist()
     i2l = {i: str(v) for i, v in enumerate(label_unique)}
