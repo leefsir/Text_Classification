@@ -9,6 +9,10 @@ from __future__ import print_function, division
 import os
 import sys
 
+import time
+
+from bert4keras.snippets import sequence_padding
+from sklearn.metrics import classification_report
 rootPath = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(rootPath)
 import jieba
@@ -97,7 +101,6 @@ class BertGraph(BasisGraph):
 
         x = Lambda(lambda x: x, output_shape=lambda s: s)(bert.model.output)
         x = SpatialDropout1D(rate=self.dropout)(x)
-        print(x.shape)
         conv_pools = []
         # 词窗大小分别为3,4,5
         for filter in self.filters:
@@ -107,7 +110,6 @@ class BertGraph(BasisGraph):
             conv_pools.append(cnn)
         # 合并三个模型的输出向量
         cnn = concatenate(conv_pools, axis=-1)
-        print(cnn.shape)
         flat = Flatten()(cnn)
         drop = Dropout(self.dropout)(flat)
         output = Dense(self.num_classes, activation=self.activation)(drop)
@@ -116,7 +118,9 @@ class BertGraph(BasisGraph):
 
     def predict(self, text):
         token_ids, segment_ids = self.tokenizer.encode(text)
-        pre = self.model.predict([[token_ids], [segment_ids]])
+        token_ids = sequence_padding([token_ids], length=self.max_len)
+        segment_ids = sequence_padding([segment_ids], length=self.max_len)
+        pre = self.model.predict([token_ids, segment_ids])
         res = self.index2label.get(str(np.argmax(pre[0])))
         return res
 
@@ -142,7 +146,36 @@ class BertGraph(BasisGraph):
             epochs=self.epoch,
             callbacks=[evaluator],
         )
+    def data_score(self, text_path):
+        time_start = time.time()
+        # 测试集的准确率
+        _, _, _, test_data = json_data_process(text_path)
+        y_pred = []
+        y_true = []
+        # for label,text in test_data:
+        for text, label, in test_data:
+            # print(text)
+            # print(self.label2index)
+            # y_true.append(self.label2index[label])
+            y_true.append(self.index2label[label])
+            token_ids, segment_ids = self.tokenizer.encode(text,maxlen=self.max_len)
+            token_ids = sequence_padding([token_ids], length=self.max_len)
+            segment_ids = sequence_padding([segment_ids], length=self.max_len)
+            pre = self.model.predict([token_ids, segment_ids])
+            # res = self.index2label.get(str(np.argmax(pre[0])))
+            # token_ids = np.array([token_ids])
+            # # 预测
+            # pred = self.model.predict(token_ids)
+            pred = str(np.argmax(pre[0]))
+            y_pred.append(self.index2label[pred])
 
+        print("data pred ok!")
+        # 评估
+        target_names = [str(label) for label in self.labels]
+        report_predict = classification_report(y_true, y_pred,
+                                               target_names=target_names, digits=9)
+        print(report_predict)
+        print("耗时:" + str(time.time() - time_start))
 
 if __name__ == '__main__':
     params = {
@@ -167,8 +200,14 @@ if __name__ == '__main__':
     #     'learning_rate': 1e-4,
     #     'gpu_id': 1,
     # }
-    bertModel = BertGraph(params, Train=True)
-    bertModel.train()
+    # bertModel = BertGraph(params, Train=True)
+    # bertModel.train()
+
+    bertModel = BertGraph(params, Train=False)
+    res = bertModel.predict('该测距仪测定目标距离。有效距离10m1km。使用简单。输入目标的高度，和触摸屏幕。之后的目标是一致的2线，得到的测量距离。为您了细节。')
+    print(res)
+
+    bertModel.data_score(params.get('train_data_path'))
 else:
     params = {
         'model_code': 'iflytek_public_wonezhacnn',  # 此处与训练时code保持一致
