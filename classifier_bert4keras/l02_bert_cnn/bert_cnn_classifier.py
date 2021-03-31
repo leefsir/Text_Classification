@@ -155,13 +155,13 @@ class BertGraph(BasisGraph):
         y_pred = []
         y_true = []
         for label, text in test_data:
-            y_true.append(self.label2index[str(label)])
+            y_true.append(self.index2label[str(label)])
             token_ids, segment_ids = self.tokenizer.encode(text, max_length=self.max_len)  # maxlen 新版本
             token_ids = sequence_padding([token_ids], length=self.max_len)
             segment_ids = sequence_padding([segment_ids], length=self.max_len)
             pred = self.model.predict([token_ids, segment_ids])
             pred = np.argmax(pred[0])
-            y_pred.append(pred)
+            y_pred.append(self.index2label[str(pred)])
 
         print("data pred ok!")
         # 评估
